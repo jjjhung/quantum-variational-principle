@@ -36,13 +36,20 @@ class RadialBasisFunction:
 
 		return np.exp(np.abs(b) * exponential)
 
-
-	# Output of the neural net
-	def psi(r):
-		return np.sum([a,radial_element(r)],axis=0)
+	# Update the parameters of the network for training
+	# The values for da,db, and dc must be of the correct shape (m x 1) for da/db and (m x 2) for dc
+	# Otherwise it will fail silently
+	def update_parameters(da, db, dc):
+		self.a += da
+		self.b += db
+		self.c += dc
 
 
 	# Returns uniformly distributed values between 0 and 1 of given shape
 	def generateConstantParameters(self, shape):
 		return np.random.uniform(0,1,shape)
 
+
+	# Output of the neural net, linear combination of the outputs from the hidden layers
+	def psi(r):
+		return np.sum([a,radial_element(r)],axis=0)
