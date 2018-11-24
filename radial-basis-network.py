@@ -14,19 +14,19 @@ from matplotlib import pyplot as plt
 		3 layer network with one hidden layer, and an output layer with a radial basis activation function
 	Didn't use tensorflow/pytorch to build this because it turns out to be simple enough we don't need to
  '''
-class RadialBasisFunction:
+class RadialBasisFunctionNetwork:
 
 	# The radial basis function class has a constructor specifying input/output dimensions, as well as the 
 	# number of centers for the gaussian activation.
 	def __init__(self, input_dimension, output_dimension, number_centers):
-		self.in_dim = input_dimension
-		self.out_dim = output_dimension
-		self.num_centers = number_centers
+		self.in_dim = input_dimension # This is 2 for a 2D system
+		self.out_dim = output_dimension # This is 1, is a probability amplitude
+		self.num_centers = number_centers # Number of hidden units
 
 		# Parameters of our model initalized randomly of appropriate size
-		self.a = self.generateConstantParameters((num_centers,1))
-		self.b = self.generateConstantParameters((num_centers,1))
-		self.c = self.generateConstantParameters((num_centers,2))
+		self.a = self.generateConstantParameters((num_centers,out_dim)
+		self.b = self.generateConstantParameters((num_centers,out_dim)
+		self.c = self.generateConstantParameters((num_centers,in_dim))
 
 
 	# Returns the radial activation function: rho_i(|*|)
@@ -46,10 +46,36 @@ class RadialBasisFunction:
 
 
 	# Returns uniformly distributed values between 0 and 1 of given shape
-	def generateConstantParameters(self, shape):
+	def generate_constant_parameters(self, shape):
 		return np.random.uniform(0,1,shape)
 
-
+	# Operators for stochastic reconfiguration to train neural net
+	# In this instance it works better than typical backpropagation 
+	# Defines operators to adjust parameters in the neural net according to the formula
+	# O_i(n) = d_lambda_i [psi_lambda(n)] / d[psi_lambda(n)]
+	
+	# r is the domain over which we evaluate psi: (2 x 1) vector here.
+	def stochastic_reconfig(self, r):
+		psi = self.psi(r)
+		
+		#O_a operator
+		self.o_a = radial_element(r) / psi
+		
+		#O_b operator
+		diff = np.subtract(x,c)
+		o_b_num = -self.a * self.b * diff.dot(diff) * radial_element(r)
+		o_b_demon = np.abs(self.b) * psi 
+		
+		self.o_b = o_b_num / o_b_denom
+		
+		#O_c operator
+		#n_j - c_ij matrix, with some transposes to speed up processing
+		intermed_matrix = (self.a - self.c.T).T 
+		
+		o_c_num = 2 * self.a * np.abs(self.b) * intermed_matrix * radial_element(r)
+		
+		self.o_c = o_c_num / psi
+	
 	# Output of the neural net, linear combination of the outputs from the hidden layers
 	def psi(r):
-		return np.sum([a,radial_element(r)],axis=0)
+		return np.sum([a,radial_element(r)], axis=0)
