@@ -8,6 +8,7 @@ if __name__ == '__main__':
 
 	network = RadialBasisFunctionNetwork(2,1,10)
 	ham = Hamiltonian2DOscillator(1,1,0.5)
+
 	# Parameters for 2d oscillator
 	energy_x = 4
 	energy_y = 2
@@ -16,32 +17,46 @@ if __name__ == '__main__':
 	max_qn = 40
 	steps = 200
 	
+
+	size_ops = 2*network.num_centers + network.num_centers * network.in_dim
+	o = np.zeros((size_ops))
+	op = np.zeros((size_ops))
+	ep = np.zeros((size_ops))
+	opo = np.zeros((size_ops,size_ops))
+
+	F = np.zeros((size_ops))
 	for i in range(steps):
 		
 		# Do metropolis to estimate energy
 		
 		iterations = 50000
+		
 		state_new = np.zeros((2,))
-		state = np.random.random_sample((2,)) * max
+
+		#Current state 
+		state = np.random.random_integers(max_qn,(2,))
+		
+		#Trial state
 		state_trial = state
 		
 		accepted_new = 0
 		
-		#Initialization of energy
-		for i in range(iterations / 20):
+		#Initial energy calculation for random start state
+		for _ in range(iterations // 20):
 			#Generate new trial state
 			randn = randint(0,1)
-			randn2 = (randint(0,1) - 0.5) / 2 #Change state up or down
+			randn2 = (randint(0,1) - 0.5) / 2 #Change state up or down, randn2 is +/- 1
 			state_trial[randn] = state[randn] + randn2 
 			
-			#Keep states within [0,1] because inputs should be quantum numbers <= max_qn
-			state_trial[0] = state_trial[0] ? state_trial[0] : 0
-			state_trial[0] = state_trial[0] <= max ? state_trial[0] : 1
-			state_trial[1] = state_trial[1] ? state_trial[1] : 0
-			state_trial[1] = state_trial[1] <= max ? state_trial[1] : 0
+			#Keep states within [0,maxqn] because state should be a vector of allowed quantum numbers
+			state_trial[0] = state_trial[0] >= 0 ? state_trial[0] : 0
+			state_trial[0] = state_trial[0] < max_qn ? state_trial[0] : max_qn - 1
+			state_trial[1] = state_trial[1] >= 0 ? state_trial[1] : 0
+			state_trial[1] = state_trial[1] < max_qn ? state_trial[1] : max_qn - 1
 			
 			prob = network.psi(state_trial) / network.psi(state)
 			
+
 			if random() < np.linalg.norm(prob) ** 2:
 				state = state_trial
 				accepted_new += 1
@@ -50,22 +65,24 @@ if __name__ == '__main__':
 		accepted_new = 0
 		energy = 0
 		
+
+
 		#Now do the actual metropolis algorithm
-		for i in range(iterations):
+		for _ in range(iterations):
 			#Generate trial states again
 			randn = randint(0,1)
 			randn2 = (randint(0,1) - 0.5) / 2
 			state_trial[randn] = state[randn] + randn2
-			
-			state_trial[0] = state_trial[0] ? state_trial[0] : 0
-			state_trial[0] = state_trial[0] <= max ? state_trial[0] : 1
-			state_trial[1] = state_trial[1] ? state_trial[1] : 0
-			state_trial[1] = state_trial[1] <= max ? state_trial[1] : 0
+
+			state_trial[0] = state_trial[0] >= 0 ? state_trial[0] : 0
+			state_trial[0] = state_trial[0] < max_qn ? state_trial[0] : max_qn - 1
+			state_trial[1] = state_trial[1] >= 0 ? state_trial[1] : 0
+			state_trial[1] = state_trial[1] < max_qn ? state_trial[1] : max_qn - 1
 
 			prob = network.psi(state_trial) / network.psi(state)
 			
 			#Change state if acceptance probability is high enough
-			if random() < np.lingalg.norm(prob) ** 2:
+			if random() < np.linalg.norm(prob) ** 2:
 				state = state_trial
 				accepted_new += 1
 				
@@ -148,8 +165,54 @@ if __name__ == '__main__':
 				E += -coeff2 * energy_y * network.psi(state_prime) / network.psi(state)
 
 
+			#Neural net training, adjust parameters of network with stochastic reconfiguration
 			energy += E
 
 			network.stochastic_reconfig(state)
 
 			parameters = network.o_a + network.o_b + network.o_c
+
+			for j in range(size_ops):
+				o[j] += parameters[j]
+				op[j] += parameters[j]
+				ep[j] += E * parameters[j]
+
+				for k in range(size_ops):
+					opo[j][k] += parameters[j]*parameters[k]
+
+		energy /= iterations
+		o /= iterations
+		op /= iterations
+		ep /= iterations
+		opo /= iterations
+
+		print energy
+
+		m = 100 * np.pow(0.9, i + 1) 
+		tempc = m > 0.0001 ? m : 0.0
+		tempd = 0 	 	 	 	
+
+		for p in range(size_ops):
+			F[p][0] = ep[p][0] - energy * op[p][0]
+
+			for q in range(size_ops):
+				S[p][q] = opo[p][q] - op[p][0] * o[q][0]
+				tempd = tempc * s[p][p]
+
+				s[p][p] += tempd
+
+		dd = np.zeros((size_ops))
+		dd = -0.2 * S.I.dot(F)
+
+		da = np.zeros((network.num_centers))
+		db = np.zeros((network.num_centers))
+		dc = np.zeros((network.num_centers, network.in_dim))
+
+		da = dd[0:network.num_centers]
+		db = dd[network.num_centers:2 * network.num_centers]
+		for l in range(network.num_centers):
+			dc[l] = dd[network.num_centers * 2 + l * network.in_dim + l % 2]
+
+		network.update_parameters(da,db,dc)
+
+	print(network.a, network.b, network.c)
