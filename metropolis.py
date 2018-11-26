@@ -1,8 +1,8 @@
 import numpy as np
 from random import random, randint
-
-from radial-basis-network import *
-from hamiltonian-2d-harm-oss import *
+import sys
+from network import *
+from hamiltonian import *
 
 if __name__ == '__main__':
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 		state_new = np.zeros((2,))
 
 		#Current state 
-		state = np.random.random_integers(max_qn,(2,))
+		state = np.random.random_integers(max_qn,size=(2,))
 		
 		#Trial state
 		state_trial = state
@@ -45,19 +45,25 @@ if __name__ == '__main__':
 		for _ in range(iterations // 20):
 			#Generate new trial state
 			randn = randint(0,1)
-			randn2 = (randint(0,1) - 0.5) / 2 #Change state up or down, randn2 is +/- 1
+			randn2 = (randint(0,1) - 0.5) * 2 #Change state up or down, randn2 is +/- 1
 			state_trial[randn] = state[randn] + randn2 
-			
+		
 			#Keep states within [0,maxqn] because state should be a vector of allowed quantum numbers
-			state_trial[0] = state_trial[0] >= 0 ? state_trial[0] : 0
-			state_trial[0] = state_trial[0] < max_qn ? state_trial[0] : max_qn - 1
-			state_trial[1] = state_trial[1] >= 0 ? state_trial[1] : 0
-			state_trial[1] = state_trial[1] < max_qn ? state_trial[1] : max_qn - 1
+			state_trial[0] = state_trial[0] if state_trial[0] >= 0 else 0
+			state_trial[0] = state_trial[0] if state_trial[0] < max_qn else max_qn - 1
+			state_trial[1] = state_trial[1] if state_trial[1] >= 0 else 0
+			state_trial[1] = state_trial[1] if state_trial[1] < max_qn else max_qn - 1
 			
+			print(state_trial, state)
+			print(network.psi(state_trial))
+			print(network.psi(state))
 			prob = network.psi(state_trial) / network.psi(state)
-			
 
-			if random() < np.linalg.norm(prob) ** 2:
+			#print(state_trial, state)
+			print(prob)
+			sys.exit()
+
+			if random.random() < np.linalg.norm(prob) ** 2:
 				state = state_trial
 				accepted_new += 1
 				
@@ -71,18 +77,18 @@ if __name__ == '__main__':
 		for _ in range(iterations):
 			#Generate trial states again
 			randn = randint(0,1)
-			randn2 = (randint(0,1) - 0.5) / 2
+			randn2 = (randint(0,1) - 0.5) * 2
 			state_trial[randn] = state[randn] + randn2
 
-			state_trial[0] = state_trial[0] >= 0 ? state_trial[0] : 0
-			state_trial[0] = state_trial[0] < max_qn ? state_trial[0] : max_qn - 1
-			state_trial[1] = state_trial[1] >= 0 ? state_trial[1] : 0
-			state_trial[1] = state_trial[1] < max_qn ? state_trial[1] : max_qn - 1
+			state_trial[0] = state_trial[0] if state_trial[0] >= 0 else 0
+			state_trial[0] = state_trial[0] if state_trial[0] < max_qn else max_qn - 1
+			state_trial[1] = state_trial[1] if state_trial[1] >= 0 else 0
+			state_trial[1] = state_trial[1] if state_trial[1] < max_qn else max_qn - 1
 
 			prob = network.psi(state_trial) / network.psi(state)
 			
 			#Change state if acceptance probability is high enough
-			if random() < np.linalg.norm(prob) ** 2:
+			if random.random() < np.linalg.norm(prob) ** 2:
 				state = state_trial
 				accepted_new += 1
 				
@@ -98,22 +104,16 @@ if __name__ == '__main__':
 			if not (state[0] or state[1]): #Both dimensions are ground state
 				state_prime[0] = state[0] + 1
 				coeff1 = np.sqrt(state_prime[0] / 2)
-				E += -coeff1 * 
-					 energy_x * 
-					 network.psi(state_prime) / network.psi(state)
+				E += -coeff1 * energy_x * network.psi(state_prime) / network.psi(state)
 				
 				state_prime[1] = state[1] + 1
 				coeff2 = np.sqrt(state_prime[1] / 2)
-				E += -coeff2 * 
-					 energy_y * 
-					 network.psi(state_prime) / network.psi(state)
+				E += -coeff2 * energy_y * network.psi(state_prime) / network.psi(state)
 
 			elif (not state[0] and state[1]):
 				state_prime[0] = state[0] + 1
 				coeff1 = np.sqrt(state_prime[0] / 2)
-				E += -coeff1 *
-					 energy_x *
-					 network.psi(state_prime) / network.psi(state)
+				E += -coeff1 * energy_x *network.psi(state_prime) / network.psi(state)
 
 				state_prime = state
 
@@ -186,10 +186,10 @@ if __name__ == '__main__':
 		ep /= iterations
 		opo /= iterations
 
-		print energy
+		print (energy)
 
 		m = 100 * np.pow(0.9, i + 1) 
-		tempc = m > 0.0001 ? m : 0.0
+		tempc = m if m > 0.0001 else 0.0
 		tempd = 0 	 	 	 	
 
 		for p in range(size_ops):
