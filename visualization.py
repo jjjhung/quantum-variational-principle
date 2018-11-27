@@ -1,21 +1,23 @@
 #Visualization Fn
 
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
-from radial-basis-network import *
-from hamiltonian-2d-harm-oss import *
+from network import *
+from hamiltonian import *
 
+network = RadialBasisFunctionNetwork(2,1,10)
 
-nx = np.linspace(0,40,10000)
-ny = np.linspace(0,40,10000)
-x,y = np.meshgrid(kx,ky)
+nx = np.linspace(0,40,40)
+ny = np.linspace(0,40,40)
+x,y = np.meshgrid(nx,ny)
 
 z = 0*x
 
 for i in range(len(nx)):
     for j in range(len(ny)):
-        z[i,j] = network.psi(nx[i,j],ny[i,j])
+        print(np.array([x[i,j],y[i,j]]))
+        z[i,j] = i*j / 10
         
         
 fig = plt.figure()
