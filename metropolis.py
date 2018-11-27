@@ -60,8 +60,6 @@ if __name__ == '__main__':
 			prob = network.psi(state_trial) / network.psi(state)
 
 			#print(state_trial, state)
-			print(prob)
-			sys.exit()
 
 			if random.random() < np.linalg.norm(prob) ** 2:
 				state = state_trial
@@ -75,6 +73,7 @@ if __name__ == '__main__':
 
 		#Now do the actual metropolis algorithm
 		for _ in range(iterations):
+			print('hi')
 			#Generate trial states again
 			randn = randint(0,1)
 			randn2 = (randint(0,1) - 0.5) * 2

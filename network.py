@@ -39,8 +39,11 @@ class RadialBasisFunctionNetwork:
 		for i,j in enumerate(diff):
 			norm_array[i] = j.dot(j)
 
-		exponential = np.sum(-np.abs(self.b) * norm_array)
 
+		#print('norm', norm_array)
+		exponential = -np.abs(self.b)*(np.reshape(norm_array, (10,1)))
+
+		#print('expoential', exponential)
 		#print('exp', exponential)
 		return np.exp(exponential)
 
@@ -70,7 +73,8 @@ class RadialBasisFunctionNetwork:
 		self.o_a = self.radial_element(r) / psi
 		
 		#O_b operator
-		diff = np.subtract(x,c)
+		diff = np.subtract(r,self.c)
+		print(diff)
 		o_b_num = -self.a * self.b * diff.dot(diff) * self.radial_element(r)
 		o_b_demon = np.abs(self.b) * psi 
 		
@@ -86,6 +90,7 @@ class RadialBasisFunctionNetwork:
 	
 	# Output of the neural net, linear combination of the outputs from the hidden layers
 	def psi(self,r):
-		print ('RTURNED' ,self.radial_element(r))
-		return np.sum(self.a, self.radial_element(r), axis=0)
+		#print ('RTURNED' ,self.radial_element(r))
+		return np.sum(self.a * self.radial_element(r))
 		#self.a[0] * self.radial_element(r,0) + self.a[1] * self.radial_element(r,1) 
+		
