@@ -73,19 +73,26 @@ class RadialBasisFunctionNetwork:
 		self.o_a = self.radial_element(r) / psi
 		
 		#O_b operator
-		diff = np.subtract(r,self.c)
+		diff = np.subtract(r.T,self.c)
 		print(diff)
-		o_b_num = -self.a * self.b * diff.dot(diff) * self.radial_element(r)
-		o_b_demon = np.abs(self.b) * psi 
+		o_b_num = -self.a * self.b * diff * diff * self.radial_element(r)
+		o_b_denom = np.abs(self.b) * psi 
 		
 		self.o_b = o_b_num / o_b_denom
 		
 		#O_c operator
 		#n_j - c_ij matrix, with some transposes to speed up processing
-		intermed_matrix = (self.a - self.c.T).T 
-		
-		o_c_num = 2 * self.a * np.abs(self.b) * intermed_matrix * self.radial_element(r)
-		
+
+		o_c_num = np.zeros((self.in_dim, self.num_centers))
+		for k in range(self.in_dim):
+			
+			intermed_matrix = (self.a - np.reshape(self.c[:,k].T, (10,1))) 
+			#print('int', intermed_matrix)
+			#print('intermediate', 2 * self.a * np.abs(self.b) * intermed_matrix * self.radial_element(r))
+			print('fjkl', self.num_centers * k, self.num_centers * (k+1))
+			o_c_num[k] = np.reshape(2 * self.a * np.abs(self.b) * intermed_matrix * self.radial_element(r), (10,))
+			
+		print('after', o_c_num)
 		self.o_c = o_c_num / psi
 	
 	# Output of the neural net, linear combination of the outputs from the hidden layers
