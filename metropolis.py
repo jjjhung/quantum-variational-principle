@@ -18,18 +18,20 @@ if __name__ == '__main__':
 	steps = 200
 	
 
-	size_ops = 2*network.num_centers + network.num_centers * network.in_dim
-	o = np.zeros((size_ops))
-	op = np.zeros((size_ops))
-	ep = np.zeros((size_ops))
+	size_ops = 2 * network.num_centers + network.num_centers * network.in_dim
+	o = np.zeros((size_ops,1))
+	op = np.zeros((size_ops,1))
+	ep = np.zeros((size_ops,1))
 	opo = np.zeros((size_ops,size_ops))
 
-	F = np.zeros((size_ops))
+	F = np.zeros((size_ops,1))
+	S = np.zeros((size_ops,size_ops))
+
 	for i in range(steps):
 		
 		# Do metropolis to estimate energy
 		
-		iterations = 50000
+		iterations = 100
 		
 		state_new = np.zeros((2,))
 
@@ -54,9 +56,6 @@ if __name__ == '__main__':
 			state_trial[1] = state_trial[1] if state_trial[1] >= 0 else 0
 			state_trial[1] = state_trial[1] if state_trial[1] < max_qn else max_qn - 1
 			
-			print(state_trial, state)
-			print(network.psi(state_trial))
-			print(network.psi(state))
 			prob = network.psi(state_trial) / network.psi(state)
 
 			#print(state_trial, state)
@@ -72,8 +71,8 @@ if __name__ == '__main__':
 
 
 		#Now do the actual metropolis algorithm
-		for _ in range(iterations):
-			print('hi')
+		for ll in range(iterations):
+			#print(ll)
 			#Generate trial states again
 			randn = randint(0,1)
 			randn2 = (randint(0,1) - 0.5) * 2
@@ -169,8 +168,11 @@ if __name__ == '__main__':
 
 			network.stochastic_reconfig(state)
 
-			parameters = network.o_a + network.o_b + network.o_c
-
+			#print(np.shape(network.o_a))
+			#print(np.shape(network.o_b))
+			#print(np.shape(network.o_c))
+			parameters = np.concatenate((network.o_a, network.o_b, network.o_c))
+			#print(parameters)
 			for j in range(size_ops):
 				o[j] += parameters[j]
 				op[j] += parameters[j]
@@ -185,23 +187,23 @@ if __name__ == '__main__':
 		ep /= iterations
 		opo /= iterations
 
-		print (energy)
+		print ("Iteration ", i, " with energy ", energy)
 
-		m = 100 * np.pow(0.9, i + 1) 
+		m = 100 * np.power(0.9, i + 1) 
 		tempc = m if m > 0.0001 else 0.0
 		tempd = 0 	 	 	 	
 
 		for p in range(size_ops):
-			F[p][0] = ep[p][0] - energy * op[p][0]
+			F[p] = ep[p] - energy * op[p]
 
 			for q in range(size_ops):
-				S[p][q] = opo[p][q] - op[p][0] * o[q][0]
-				tempd = tempc * s[p][p]
+				S[p][q] = opo[p][q] - op[p] * o[q]
+				tempd = tempc * S[p][p]
 
-				s[p][p] += tempd
+				S[p][p] += tempd
 
 		dd = np.zeros((size_ops))
-		dd = -0.2 * S.I.dot(F)
+		dd = -0.2 * np.linalg.inv(S).dot(F)
 
 		da = np.zeros((network.num_centers))
 		db = np.zeros((network.num_centers))
@@ -214,4 +216,6 @@ if __name__ == '__main__':
 
 		network.update_parameters(da,db,dc)
 
-	print(network.a, network.b, network.c)
+	#print(network.a, network.b, network.c)
+
+	print(network.psi(np.array([0,0])))

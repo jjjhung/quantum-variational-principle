@@ -71,29 +71,45 @@ class RadialBasisFunctionNetwork:
 		
 		#O_a operator
 		self.o_a = self.radial_element(r) / psi
-		
+
+		temp = []
 		#O_b operator
-		diff = np.subtract(r.T,self.c)
-		print(diff)
-		o_b_num = -self.a * self.b * diff * diff * self.radial_element(r)
+		for i in range(self.num_centers):
+			diff = np.subtract(r.T,self.c[i])
+			temp.append(diff.dot(diff))
+		
+		temp = np.reshape(np.array(temp), np.shape(self.a))
+		#print(self.a * temp)
+		#print(self.a, self.b, temp, self.radial_element(r))
+		o_b_num = -self.a * self.b * temp * self.radial_element(r)
+
 		o_b_denom = np.abs(self.b) * psi 
 		
+		#print('num', o_b_num)
+		#print('denom', o_b_denom)
 		self.o_b = o_b_num / o_b_denom
 		
 		#O_c operator
-		#n_j - c_ij matrix, with some transposes to speed up processing
 
 		o_c_num = np.zeros((self.in_dim, self.num_centers))
-		for k in range(self.in_dim):
+		intermed = []
+		for k in range(self.num_centers):
 			
-			intermed_matrix = (self.a - np.reshape(self.c[:,k].T, (10,1))) 
-			#print('int', intermed_matrix)
-			#print('intermediate', 2 * self.a * np.abs(self.b) * intermed_matrix * self.radial_element(r))
-			print('fjkl', self.num_centers * k, self.num_centers * (k+1))
-			o_c_num[k] = np.reshape(2 * self.a * np.abs(self.b) * intermed_matrix * self.radial_element(r), (10,))
-			
-		print('after', o_c_num)
-		self.o_c = o_c_num / psi
+			intermed.append(np.subtract(r.T, self.c[k]))
+
+		intermed = np.reshape(np.array(intermed), (self.num_centers, self.in_dim))
+
+		#print('int', intermed_matrix)
+		#print('intermediate', 2 * self.a * np.abs(self.b) * intermed_matrix * self.radial_element(r))
+		o_c_num = 2 * self.a * np.abs(self.b) * intermed * self.radial_element(r)
+		
+		#print('after', np.shape(o_c_num[:,0]))
+
+		temp = np.zeros((self.in_dim * self.num_centers))
+		for i in range(self.in_dim):
+			temp[self.num_centers * i: self.num_centers * (i+1)] = o_c_num[:,i]
+
+		self.o_c = np.reshape(temp / psi , (self.in_dim * self.num_centers, 1))
 	
 	# Output of the neural net, linear combination of the outputs from the hidden layers
 	def psi(self,r):
