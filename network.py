@@ -40,7 +40,6 @@ class RadialBasisFunctionNetwork:
 			norm_array[i] = j.dot(j)
 
 
-		#print('norm', norm_array)
 		exponential = -np.abs(self.b)*(np.reshape(norm_array, (10,1)))
 
 		#print('expoential', exponential)
@@ -58,7 +57,8 @@ class RadialBasisFunctionNetwork:
 
 	# Returns uniformly distributed values between 0 and 1 of given shape
 	def generate_constant_parameters(self, shape):
-		return np.random.uniform(0,1,shape)
+		return np.ones(shape) / 2
+		#return np.random.uniform(0,1,shape)
 
 	# Operators for stochastic reconfiguration to train neural net
 	# In this instance it works better than typical backpropagation 
@@ -117,3 +117,12 @@ class RadialBasisFunctionNetwork:
 		return np.sum(self.a * self.radial_element(r))
 		#self.a[0] * self.radial_element(r,0) + self.a[1] * self.radial_element(r,1) 
 		
+if __name__ == '__main__':
+	network = RadialBasisFunctionNetwork(2,1,10)
+
+	#print(network.psi(np.array([2,2])))
+	network.stochastic_reconfig(np.array([2,2]))
+
+	#print(network.o_a)
+	#print(network.o_b)
+	#print(network.o_c)

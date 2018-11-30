@@ -97,6 +97,7 @@ if __name__ == '__main__':
 			#sum over all the states, n'
 			state_prime = state
 
+			print(state)
 			# The energy calculation depends on if one of the states is the ground state
 			# This calculates E
 			if not (state[0] or state[1]): #Both dimensions are ground state
@@ -181,14 +182,14 @@ if __name__ == '__main__':
 				EO[j] += E * parameters[j]
 
 				for k in range(size_ops):
-					Oij[j][k] += parameters[j]*parameters[k]
+					Oij[j][k] += parameters[j] * parameters[k]
 
 		# Expectation values for energy and the operators
 		energy /= iterations
-		O /= iterations
-		O_star /= iterations
-		EO /= iterations
-		Oij /= iterations
+		O /= iterations #o
+		O_star /= iterations #op
+		EO /= iterations #ep
+		Oij /= iterations #opo
 
 		print ("Iteration ", i, " with energy ", energy)
 
