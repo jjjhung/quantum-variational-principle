@@ -19,10 +19,10 @@ if __name__ == '__main__':
 	
 
 	size_ops = 2 * network.num_centers + network.num_centers * network.in_dim
-	o = np.zeros((size_ops,1))
-	op = np.zeros((size_ops,1))
-	ep = np.zeros((size_ops,1))
-	opo = np.zeros((size_ops,size_ops))
+	O = np.zeros((size_ops,1))
+	O_star = np.zeros((size_ops,1))
+	EO = np.zeros((size_ops,1))
+	Oij = np.zeros((size_ops,size_ops))
 
 	F = np.zeros((size_ops,1))
 	S = np.zeros((size_ops,size_ops))
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 		
 		# Do metropolis to estimate energy
 		
-		iterations = 100
+		iterations = 5000
 		
 		state_new = np.zeros((2,))
 
@@ -173,31 +173,36 @@ if __name__ == '__main__':
 			#print(np.shape(network.o_c))
 			parameters = np.concatenate((network.o_a, network.o_b, network.o_c))
 			#print(parameters)
+
+			#These are for the expectation value operators
 			for j in range(size_ops):
-				o[j] += parameters[j]
-				op[j] += parameters[j]
-				ep[j] += E * parameters[j]
+				O[j] += parameters[j]
+				O_star[j] += parameters[j]
+				EO[j] += E * parameters[j]
 
 				for k in range(size_ops):
-					opo[j][k] += parameters[j]*parameters[k]
+					Oij[j][k] += parameters[j]*parameters[k]
 
+		# Expectation values for energy and the operators
 		energy /= iterations
-		o /= iterations
-		op /= iterations
-		ep /= iterations
-		opo /= iterations
+		O /= iterations
+		O_star /= iterations
+		EO /= iterations
+		Oij /= iterations
 
 		print ("Iteration ", i, " with energy ", energy)
 
+		#Regularization term to add to the matrix S diagonal elements
+		# given by max(100 * 0.9^k, 0.0001)
 		m = 100 * np.power(0.9, i + 1) 
 		tempc = m if m > 0.0001 else 0.0
 		tempd = 0 	 	 	 	
 
 		for p in range(size_ops):
-			F[p] = ep[p] - energy * op[p]
+			F[p] = EO[p] - energy * O_star[p]
 
 			for q in range(size_ops):
-				S[p][q] = opo[p][q] - op[p] * o[q]
+				S[p][q] = Oij[p][q] - O_star[p] * O[q]
 				tempd = tempc * S[p][p]
 
 				S[p][p] += tempd
