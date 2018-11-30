@@ -34,7 +34,7 @@ class RadialBasisFunctionNetwork:
 		diff = np.subtract(x,c)
 		exponential = diff.dot(diff)
 
-		return np.exp(np.abs(b) * exponential)
+		return np.exp(-np.abs(b) * exponential)
 
 	# Update the parameters of the network for training
 	# The values for da,db, and dc must be of the correct shape (m x 1) for da/db and (m x 2) for dc
