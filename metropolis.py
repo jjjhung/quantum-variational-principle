@@ -3,10 +3,16 @@ from random import random, randint
 import sys
 from network import *
 from hamiltonian import *
+np.seterr(all='raise') #For debugging
 
 if __name__ == '__main__':
 
 	network = RadialBasisFunctionNetwork(2,1,10)
+
+	#print(network.a)
+	#print(network.b)
+	#print(network.c)
+
 	ham = Hamiltonian2DOscillator(1,1,0.5)
 
 	# Parameters for 2d oscillator
@@ -14,24 +20,24 @@ if __name__ == '__main__':
 	energy_y = 2
 	
 	#Max number of basis functions for hamiltonian
-	max_qn = 40
+	max_qn = 10
 	steps = 200
 	
 
 	size_ops = 2 * network.num_centers + network.num_centers * network.in_dim
-	O = np.zeros((size_ops,1))
-	O_star = np.zeros((size_ops,1))
-	EO = np.zeros((size_ops,1))
-	Oij = np.zeros((size_ops,size_ops))
+	O = np.zeros((size_ops,1),dtype=np.float64)
+	O_star = np.zeros((size_ops,1),dtype=np.float64)
+	EO = np.zeros((size_ops,1),dtype=np.float64)
+	Oij = np.zeros((size_ops,size_ops),dtype=np.float64)
 
-	F = np.zeros((size_ops,1))
-	S = np.zeros((size_ops,size_ops))
+	F = np.zeros((size_ops,1),dtype=np.float64)
+	S = np.zeros((size_ops,size_ops),dtype=np.float64)
 
 	for i in range(steps):
 		
 		# Do metropolis to estimate energy
 		
-		iterations = 5000
+		iterations = 100
 		
 		state_new = np.zeros((2,))
 
@@ -67,7 +73,9 @@ if __name__ == '__main__':
 			
 		accepted_new = 0
 		energy = 0
-		
+		print(state)
+		#print(network.psi(state))
+
 
 
 		#Now do the actual metropolis algorithm
@@ -97,19 +105,21 @@ if __name__ == '__main__':
 			#sum over all the states, n'
 			state_prime = state
 
-			print(state)
+			#print(state)
 			# The energy calculation depends on if one of the states is the ground state
 			# This calculates E
-			if not (state[0] or state[1]): #Both dimensions are ground state
+			if (state[0] == 0 and state[1] == 0): #Both dimensions are ground state
 				state_prime[0] = state[0] + 1
 				coeff1 = np.sqrt(state_prime[0] / 2)
 				E += -coeff1 * energy_x * network.psi(state_prime) / network.psi(state)
 				
+				state_prime = state
+
 				state_prime[1] = state[1] + 1
 				coeff2 = np.sqrt(state_prime[1] / 2)
 				E += -coeff2 * energy_y * network.psi(state_prime) / network.psi(state)
 
-			elif (not state[0] and state[1]):
+			elif (state[0] == 0 and state[1]):
 				state_prime[0] = state[0] + 1
 				coeff1 = np.sqrt(state_prime[0] / 2)
 				E += -coeff1 * energy_x *network.psi(state_prime) / network.psi(state)
@@ -124,7 +134,7 @@ if __name__ == '__main__':
 				coeff2 = np.sqrt(state[1] / 2)
 				E += -coeff2 * energy_y * network.psi(state_prime) / network.psi(state)
 
-			elif (state[0] and not state[1]):
+			elif (state[0] and state[1] == 0):
 				state_prime[0] = state[0] + 1
 				coeff1 = np.sqrt(state_prime[0] / 2)
 
@@ -141,7 +151,6 @@ if __name__ == '__main__':
 				coeff2 = np.sqrt(state_prime[1] / 2)
 				E += -coeff2 * energy_y * network.psi(state_prime) / network.psi(state)  
 			else:
-				state_prime = state
 				state_prime[0] = state[0] + 1 
 				coeff1 = np.sqrt(state_prime[0] / 2)
 
@@ -186,10 +195,10 @@ if __name__ == '__main__':
 
 		# Expectation values for energy and the operators
 		energy /= iterations
-		O /= iterations #o
-		O_star /= iterations #op
-		EO /= iterations #ep
-		Oij /= iterations #opo
+		O /= iterations 
+		O_star /= iterations 
+		EO /= iterations 
+		Oij /= iterations 
 
 		print ("Iteration ", i, " with energy ", energy)
 

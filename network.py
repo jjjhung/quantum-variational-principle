@@ -1,5 +1,4 @@
 import scipy as sp
-#Technically scipy has all the numpy functionality, but I like the numpy functions better
 import numpy as np  
 import random
 
@@ -35,16 +34,20 @@ class RadialBasisFunctionNetwork:
 		#print('params', self.a, self.b, self.c[i])
 		diff = np.subtract(x.T,self.c)
 
-		norm_array = np.zeros((self.num_centers))
+		norm_array = np.zeros((self.num_centers),dtype=np.float64)
 		for i,j in enumerate(diff):
 			norm_array[i] = j.dot(j)
 
+		exp = -np.abs(self.b)*(np.reshape(norm_array, (10,1)))
+		#print('exponential factor', exp)
 
-		exponential = -np.abs(self.b)*(np.reshape(norm_array, (10,1)))
+		#This value is too small, so exponential becomes something like -400
+		# so when you take exp(-400), and divide something / exp(-400), it gives division error
+		exponential = exp.astype(np.float64)
 
 		#print('expoential', exponential)
 		#print('exp', exponential)
-		return np.exp(exponential)
+		return np.exp(exponential).astype(np.float64)
 
 	# Update the parameters of the network for training
 	# The values for da,db, and dc must be of the correct shape (m x 1) for da/db and (m x 2) for dc
@@ -57,7 +60,7 @@ class RadialBasisFunctionNetwork:
 
 	# Returns uniformly distributed values between 0 and 1 of given shape
 	def generate_constant_parameters(self, shape):
-		return np.ones(shape) / 2
+		return np.ones(shape,dtype=np.float64) / 2
 		#return np.random.uniform(0,1,shape)
 
 	# Operators for stochastic reconfiguration to train neural net
@@ -67,7 +70,7 @@ class RadialBasisFunctionNetwork:
 	
 	# r is the domain over which we evaluate psi: (2 x 1) vector here.
 	def stochastic_reconfig(self, r):
-		psi = self.psi(r)
+		psi = self.psi(r).astype(np.float64)
 		
 		#O_a operator
 		self.o_a = self.radial_element(r) / psi
@@ -81,7 +84,13 @@ class RadialBasisFunctionNetwork:
 		temp = np.reshape(np.array(temp), np.shape(self.a))
 		#print(self.a * temp)
 		#print(self.a, self.b, temp, self.radial_element(r))
-		o_b_num = -self.a * self.b * temp * self.radial_element(r)
+		try:
+			o_b_num = -self.a * self.b * temp * self.radial_element(r)
+		except:
+			print(self.a)
+			print(self.b)
+			print(temp)
+			print(self.radial_element)
 
 		o_b_denom = np.abs(self.b) * psi 
 		
@@ -91,7 +100,7 @@ class RadialBasisFunctionNetwork:
 		
 		#O_c operator
 
-		o_c_num = np.zeros((self.in_dim, self.num_centers))
+		o_c_num = np.zeros((self.in_dim, self.num_centers), dtype=np.float64)
 		intermed = []
 		for k in range(self.num_centers):
 			
@@ -105,7 +114,7 @@ class RadialBasisFunctionNetwork:
 		
 		#print('after', np.shape(o_c_num[:,0]))
 
-		temp = np.zeros((self.in_dim * self.num_centers))
+		temp = np.zeros((self.in_dim * self.num_centers), dtype=np.float64)
 		for i in range(self.in_dim):
 			temp[self.num_centers * i: self.num_centers * (i+1)] = o_c_num[:,i]
 
