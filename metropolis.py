@@ -205,17 +205,17 @@ if __name__ == '__main__':
 		#Regularization term to add to the matrix S diagonal elements
 		# given by max(100 * 0.9^k, 0.0001)
 		m = 100 * np.power(0.9, i + 1) 
-		tempc = m if m > 0.0001 else 0.0
-		tempd = 0 	 	 	 	
+		regularization_const = m if m > 0.0001 else 0.0
+		single_regularized_element = 0 	 	 	 	
 
 		for p in range(size_ops):
 			F[p] = EO[p] - energy * O_star[p]
 
 			for q in range(size_ops):
 				S[p][q] = Oij[p][q] - O_star[p] * O[q]
-				tempd = tempc * S[p][p]
+				single_regularized_element = regularization_const * S[p][p]
 
-				S[p][p] += tempd
+				S[p][p] += single_regularized_element
 
 		dd = np.zeros((size_ops))
 		dd = -0.2 * np.linalg.inv(S).dot(F)
