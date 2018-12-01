@@ -47,6 +47,9 @@ class RadialBasisFunctionNetwork:
 
 		#print('expoential', exponential)
 		#print('exp', exponential)
+		for i,j in enumerate(exponential):
+			if j < -400:
+				exponential[i] = 0
 		return np.exp(exponential).astype(np.float64)
 
 	# Update the parameters of the network for training
@@ -123,6 +126,12 @@ class RadialBasisFunctionNetwork:
 	# Output of the neural net, linear combination of the outputs from the hidden layers
 	def psi(self,r):
 		#print ('RTURNED' ,self.radial_element(r))
+		temp = self.radial_element(r)
+		radial_ele = np.zeros((np.shape(temp)))
+
+		for i,j in enumerate(temp):
+			radial_ele[i] = 0 if j == 1 else temp[i]
+
 		return np.sum(self.a * self.radial_element(r))
 		#self.a[0] * self.radial_element(r,0) + self.a[1] * self.radial_element(r,1) 
 		
