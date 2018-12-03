@@ -24,7 +24,8 @@ class RadialBasisFunctionNetwork:
 
 		# Parameters of our model initalized randomly of appropriate size
 		self.a = self.generate_constant_parameters((self.num_centers,self.out_dim))
-		self.b = self.generate_constant_parameters((self.num_centers,self.out_dim))
+		#self.b = self.generate_constant_parameters((self.num_centers,self.out_dim))
+		self.b = np.ones((self.num_centers, self.out_dim))
 		self.c = self.generate_constant_parameters((self.num_centers,self.in_dim))
 
 
@@ -41,8 +42,6 @@ class RadialBasisFunctionNetwork:
 		exp = -np.abs(self.b)*(np.reshape(norm_array, (10,1)))
 		#print('exponential factor', exp)
 
-		#This value is too small, so exponential becomes something like -400
-		# so when you take exp(-400), and divide something / exp(-400), it gives division error
 		exponential = exp.astype(np.float64)
 
 		#print('expoential', exponential)
@@ -63,8 +62,8 @@ class RadialBasisFunctionNetwork:
 
 	# Returns uniformly distributed values between 0 and 1 of given shape
 	def generate_constant_parameters(self, shape):
-		return np.ones(shape,dtype=np.float64) / 2
-		#return np.random.uniform(0,1,shape)
+		#return np.ones(shape,dtype=np.float64) / 2
+		return np.random.uniform(0,1,shape)
 
 	# Operators for stochastic reconfiguration to train neural net
 	# In this instance it works better than typical backpropagation 

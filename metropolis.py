@@ -3,6 +3,7 @@ from random import random, randint
 import sys
 from network import *
 from hamiltonian import *
+from visualization import *
 np.seterr(all='raise') #For debugging
 
 if __name__ == '__main__':
@@ -21,24 +22,14 @@ if __name__ == '__main__':
 	
 	#Max number of basis functions for hamiltonian
 	max_qn = 10
-	steps = 200
-	
+	steps = 200   #Reconfiguration steps
+	iterations = 50000   #Number of monte carlo steps per iteration
 
 	size_ops = 2 * network.num_centers + network.num_centers * network.in_dim
-	O = np.zeros((size_ops,1),dtype=np.float64)
-	O_star = np.zeros((size_ops,1),dtype=np.float64)
-	EO = np.zeros((size_ops,1),dtype=np.float64)
-	Oij = np.zeros((size_ops,size_ops),dtype=np.float64)
 
-	F = np.zeros((size_ops,1),dtype=np.float64)
-	S = np.zeros((size_ops,size_ops),dtype=np.float64)
-
+	#Initialization
 	for i in range(steps):
-		
-		# Do metropolis to estimate energy
-		
-		iterations = 100
-		
+
 		state_new = np.zeros((2,))
 
 		#Current state 
@@ -50,13 +41,13 @@ if __name__ == '__main__':
 		accepted_new = 0
 		
 		#Initial energy calculation for random start state
-		for _ in range(iterations // 20):
+		for _ in range(iterations):
 			#Generate new trial state
 			randn = randint(0,1)
 			randn2 = (randint(0,1) - 0.5) * 2 #Change state up or down, randn2 is +/- 1
 			state_trial[randn] = state[randn] + randn2 
-		
-			#Keep states within [0,maxqn] because state should be a vector of allowed quantum numbers
+	
+				#Keep states within [0,maxqn] because state should be a vector of allowed quantum numbers
 			state_trial[0] = state_trial[0] if state_trial[0] >= 0 else 0
 			state_trial[0] = state_trial[0] if state_trial[0] < max_qn else max_qn - 1
 			state_trial[1] = state_trial[1] if state_trial[1] >= 0 else 0
@@ -73,9 +64,6 @@ if __name__ == '__main__':
 			
 		accepted_new = 0
 		energy = 0
-		print(state)
-		#print(network.psi(state))
-
 
 
 		#Now do the actual metropolis algorithm
@@ -184,14 +172,43 @@ if __name__ == '__main__':
 			parameters = np.concatenate((network.o_a, network.o_b, network.o_c))
 			#print(parameters)
 
-			#These are for the expectation value operators
+			#Refresh parameteres
+			O = np.zeros((size_ops,1),dtype=np.float64)
+
+			#This is supposed to be complex conj of O, but I didn't work with the complex datatypes here
+			O_star = np.zeros((size_ops,1),dtype=np.float64) 
+			EO = np.zeros((size_ops,1),dtype=np.float64)
+			Oij = np.zeros((size_ops,size_ops),dtype=np.float64)
+
+			F = np.zeros((size_ops,1),dtype=np.float64)
+			S = np.zeros((size_ops,size_ops),dtype=np.float64)
+
+			#try:
+			# Calculate the intermediate step matrices for covariance and force
+			# Can't use numpy array operations for this since we're manually checking for underflow errors
 			for j in range(size_ops):
-				O[j] += parameters[j]
-				O_star[j] += parameters[j]
-				EO[j] += E * parameters[j]
+				if np.abs(parameters[j]) < 1e-100:
+					O[j] += 0
+					O_star[j] += 0
+					EO += 0
+				else:	
+					O[j] += parameters[j]
+					O_star[j] += parameters[j]
+					EO[j] += E * parameters[j]
 
 				for k in range(size_ops):
-					Oij[j][k] += parameters[j] * parameters[k]
+					if np.abs(parameters[j]) < 1e-100 or np.abs(parameters[k]) < 1e-100:
+						Oij[j,k] += 0.0
+						#print('val', parameters[j], parameters[k])
+					else:
+						Oij[j,k] += parameters[j] * parameters[k]
+
+
+
+					#print('not too small', parameters[j])
+			#except FloatingPointError: #Sometime we get underflow errors, ignore and treat as 
+				#print("TOO SMALL", parameters[j])
+				#print(parameters[k])
 
 		# Expectation values for energy and the operators
 		energy /= iterations
@@ -205,20 +222,25 @@ if __name__ == '__main__':
 		#Regularization term to add to the matrix S diagonal elements
 		# given by max(100 * 0.9^k, 0.0001)
 		m = 100 * np.power(0.9, i + 1) 
-		regularization_const = m if m > 0.0001 else 0.0
+		regularization_const = m if m > 0.0001 else 0.0001
 		single_regularized_element = 0 	 	 	 	
 
-		for p in range(size_ops):
-			F[p] = EO[p] - energy * O_star[p]
+		try:
+			for p in range(size_ops):
+				F[p] = EO[p] - energy * O_star[p]
 
-			for q in range(size_ops):
-				S[p][q] = Oij[p][q] - O_star[p] * O[q]
-				single_regularized_element = regularization_const * S[p][p]
+				for q in range(size_ops):
+					S[p,q] = Oij[p,q] - O_star[p] * O[q]
+				single_regularized_element = regularization_const * S[p,p]
 
-				S[p][p] += single_regularized_element
-
+				S[p,p] += single_regularized_element
+		except FloatingPointError:
+			print("TOO SMALL", Oij[p,q], O_star[p], O[q])
+		
 		dd = np.zeros((size_ops))
-		dd = -0.2 * np.linalg.inv(S).dot(F)
+
+		#Pseudo inverse in case S is singular
+		dd = -0.2 * np.linalg.pinv(S).dot(F)
 
 		da = np.zeros((network.num_centers))
 		db = np.zeros((network.num_centers))
@@ -229,8 +251,9 @@ if __name__ == '__main__':
 		for l in range(network.num_centers):
 			dc[l] = dd[network.num_centers * 2 + l * network.in_dim + l % 2]
 
+		#print(da,db,dc)
 		network.update_parameters(da,db,dc)
 
 	#print(network.a, network.b, network.c)
-
+	Visualize(network)
 	print(network.psi(np.array([0,0])))
