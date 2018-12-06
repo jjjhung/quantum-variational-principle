@@ -6,6 +6,24 @@ from hamiltonian import *
 from visualization import *
 np.seterr(all='raise') #For debugging
 
+'''
+	Runs 200 steps of parameter updates, each step having 50 000 monte carlo steps for 
+	estimating local energy.
+	The code as is took approximately 16 hours to run on a server with
+	64GB of RAM and a 16 core xeon processor. 
+
+	Run at your own risk :) [Your computer may crash] 
+	Tune steps to 100/1000 for more managable load. 
+	
+	Details of algorithms and neural net are provided in accompanying paper. 
+
+	There were many underflow errors in the process of debugging, so manual checks were
+	added to detect those. Slightly imprecise results may result due to the neglecting of 
+	certain terms to fix errors. 
+
+	Todo in the future: Run on 128bit architecture to fix. 
+'''
+
 if __name__ == '__main__':
 
 	network = RadialBasisFunctionNetwork(2,1,10)
