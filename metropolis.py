@@ -41,7 +41,7 @@ if __name__ == '__main__':
 	#Max number of basis functions for hamiltonian
 	max_qn = 10
 	steps = 200   #Reconfiguration steps
-	iterations = 50000   #Number of monte carlo steps per iteration
+	iterations = 1000   #Number of monte carlo steps per iteration
 
 	size_ops = 2 * network.num_centers + network.num_centers * network.in_dim
 
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 			randn2 = (randint(0,1) - 0.5) * 2 #Change state up or down, randn2 is +/- 1
 			state_trial[randn] = state[randn] + randn2 
 	
-				#Keep states within [0,maxqn] because state should be a vector of allowed quantum numbers
+			#Keep states within [0,maxqn] because state should be a vector of allowed quantum numbers
 			state_trial[0] = state_trial[0] if state_trial[0] >= 0 else 0
 			state_trial[0] = state_trial[0] if state_trial[0] < max_qn else max_qn - 1
 			state_trial[1] = state_trial[1] if state_trial[1] >= 0 else 0
@@ -191,15 +191,15 @@ if __name__ == '__main__':
 			#print(parameters)
 
 			#Refresh parameteres
-			O = np.zeros((size_ops,1),dtype=np.float64)
+			O = np.zeros((size_ops,1),dtype=np.complex)
 
 			#This is supposed to be complex conj of O, but I didn't work with the complex datatypes here
-			O_star = np.zeros((size_ops,1),dtype=np.float64) 
-			EO = np.zeros((size_ops,1),dtype=np.float64)
-			Oij = np.zeros((size_ops,size_ops),dtype=np.float64)
+			O_star = np.zeros((size_ops,1),dtype=np.complex) 
+			EO = np.zeros((size_ops,1),dtype=np.complex)
+			Oij = np.zeros((size_ops,size_ops),dtype=np.complex)
 
-			F = np.zeros((size_ops,1),dtype=np.float64)
-			S = np.zeros((size_ops,size_ops),dtype=np.float64)
+			F = np.zeros((size_ops,1),dtype=np.complex)
+			S = np.zeros((size_ops,size_ops),dtype=np.complex)
 
 			#try:
 			# Calculate the intermediate step matrices for covariance and force

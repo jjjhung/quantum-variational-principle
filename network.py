@@ -1,4 +1,4 @@
-import scipy as sp
+
 import numpy as np  
 import random
 
@@ -19,13 +19,13 @@ class RadialBasisFunctionNetwork:
 	# number of centers for the gaussian activation.
 	def __init__(self, input_dimension, output_dimension, number_centers):
 		self.in_dim = input_dimension # This is 2 for a 2D system
-		self.out_dim = output_dimension # This is 1, is a probability amplitude
+		self.out_dim = output_dimension # This is always 1, is a probability amplitude
 		self.num_centers = number_centers # Number of hidden units
 
 		# Parameters of our model initalized randomly of appropriate size
 		self.a = self.generate_constant_parameters((self.num_centers,self.out_dim))
 		#self.b = self.generate_constant_parameters((self.num_centers,self.out_dim))
-		self.b = np.ones((self.num_centers, self.out_dim))
+		self.b = np.ones((self.num_centers, self.out_dim), dtype=np.complex)
 		self.c = self.generate_constant_parameters((self.num_centers,self.in_dim))
 
 
@@ -33,23 +33,26 @@ class RadialBasisFunctionNetwork:
 	def radial_element(self, x):
 		#print(x)
 		#print('params', self.a, self.b, self.c[i])
-		diff = np.subtract(x.T,self.c)
+		diff = np.zeros((self.num_centers, self.in_dim), dtype=np.complex)
 
-		norm_array = np.zeros((self.num_centers),dtype=np.float64)
+		diff += np.subtract(x.T,self.c)
+
+		norm_array = np.zeros((self.num_centers),dtype=np.complex)
 		for i,j in enumerate(diff):
 			norm_array[i] = j.dot(j)
 
 		exp = -np.abs(self.b)*(np.reshape(norm_array, (10,1)))
 		#print('exponential factor', exp)
 
-		exponential = exp.astype(np.float64)
+		exponential = exp.astype(np.complex)
 
 		#print('expoential', exponential)
 		#print('exp', exponential)
 		for i,j in enumerate(exponential):
 			if j < -400:
 				exponential[i] = 0
-		return np.exp(exponential).astype(np.float64)
+
+		return np.exp(exponential).astype(np.complex)
 
 	# Update the parameters of the network for training
 	# The values for da,db, and dc must be of the correct shape (m x 1) for da/db and (m x 2) for dc
@@ -62,8 +65,8 @@ class RadialBasisFunctionNetwork:
 
 	# Returns uniformly distributed values between 0 and 1 of given shape
 	def generate_constant_parameters(self, shape):
-		#return np.ones(shape,dtype=np.float64) / 2
-		return np.random.uniform(0,1,shape)
+		#return np.ones(shape,dtype=np.complex) / 2
+		return np.random.uniform(0,1,shape).astype(np.complex)
 
 	# Operators for stochastic reconfiguration to train neural net
 	# In this instance it works better than typical backpropagation 
@@ -72,7 +75,7 @@ class RadialBasisFunctionNetwork:
 	
 	# r is the domain over which we evaluate psi: (2 x 1) vector here.
 	def stochastic_reconfig(self, r):
-		psi = self.psi(r).astype(np.float64)
+		psi = self.psi(r).astype(np.complex)
 		
 		#O_a operator
 		self.o_a = self.radial_element(r) / psi
@@ -102,7 +105,7 @@ class RadialBasisFunctionNetwork:
 		
 		#O_c operator
 
-		o_c_num = np.zeros((self.in_dim, self.num_centers), dtype=np.float64)
+		o_c_num = np.zeros((self.in_dim, self.num_centers), dtype=np.complex)
 		intermed = []
 		for k in range(self.num_centers):
 			
@@ -116,7 +119,7 @@ class RadialBasisFunctionNetwork:
 		
 		#print('after', np.shape(o_c_num[:,0]))
 
-		temp = np.zeros((self.in_dim * self.num_centers), dtype=np.float64)
+		temp = np.zeros((self.in_dim * self.num_centers), dtype=np.complex)
 		for i in range(self.in_dim):
 			temp[self.num_centers * i: self.num_centers * (i+1)] = o_c_num[:,i]
 
@@ -126,7 +129,7 @@ class RadialBasisFunctionNetwork:
 	def psi(self,r):
 		#print ('RTURNED' ,self.radial_element(r))
 		temp = self.radial_element(r)
-		radial_ele = np.zeros((np.shape(temp)))
+		radial_ele = np.zeros((np.shape(temp)), dtype=np.complex)
 
 		for i,j in enumerate(temp):
 			radial_ele[i] = 0 if j == 1 else temp[i]
