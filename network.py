@@ -11,7 +11,6 @@ import random
 	structure.
 	Quick 101:
 		3 layer network with one hidden layer, and an output layer with a radial basis activation function
-	Didn't use tensorflow/pytorch to build this because it turns out to be simple enough we don't need to
  '''
 class RadialBasisFunctionNetwork:
 
@@ -31,8 +30,15 @@ class RadialBasisFunctionNetwork:
 
 	# Returns the radial activation function: rho_i(|*|)
 	def radial_element(self, x):
-		#print(x)
-		#print('params', self.a, self.b, self.c[i])
+		#print(np.shape(self.c[0]))
+		# summ = 0 + 0j
+		# for j in range(self.in_dim):
+		# 	summ += (np.linalg.norm(x[j] - self.c[j])) ** 2
+
+		# summ *= -np.abs(self.b)
+		
+		# return np.exp(summ)
+
 		diff = np.zeros((self.num_centers, self.in_dim), dtype=np.complex)
 
 		diff += np.subtract(x.T,self.c)
@@ -42,26 +48,20 @@ class RadialBasisFunctionNetwork:
 			norm_array[i] = j.dot(j)
 
 		exp = -np.abs(self.b)*(np.reshape(norm_array, (10,1)))
-		#print('exponential factor', exp)
 
-		exponential = exp.astype(np.complex)
-
-		#print('expoential', exponential)
-		#print('exp', exponential)
-		for i,j in enumerate(exponential):
+		for i,j in enumerate(exp):
 			if j < -400:
-				exponential[i] = 0
+				exp[i] = 0
 
-		return np.exp(exponential).astype(np.complex)
+		return np.exp(exp)
 
 	# Update the parameters of the network for training
-	# The values for da,db, and dc must be of the correct shape (m x 1) for da/db and (m x 2) for dc
-	# Otherwise it will fail silently
 	def update_parameters(self, da, db, dc):
 		self.a += da
 		self.b += db
 		self.c += dc
 
+		print(self.a)
 
 	# Returns uniformly distributed values between 0 and 1 of given shape
 	def generate_constant_parameters(self, shape):
@@ -70,17 +70,18 @@ class RadialBasisFunctionNetwork:
 
 	# Operators for stochastic reconfiguration to train neural net
 	# In this instance it works better than typical backpropagation 
-	# Defines operators to adjust parameters in the neural net according to the formula
+	# Defines operators to adjust parameters in the neural net according to the formula 
 	# O_i(n) = d_lambda_i [psi_lambda(n)] / d[psi_lambda(n)]
 	
 	# r is the domain over which we evaluate psi: (2 x 1) vector here.
 	def stochastic_reconfig(self, r):
 		psi = self.psi(r).astype(np.complex)
-		
+
 		#O_a operator
 		self.o_a = self.radial_element(r) / psi
 
 		temp = []
+		
 		#O_b operator
 		for i in range(self.num_centers):
 			diff = np.subtract(r.T,self.c[i])
@@ -89,6 +90,7 @@ class RadialBasisFunctionNetwork:
 		temp = np.reshape(np.array(temp), np.shape(self.a))
 		#print(self.a * temp)
 		#print(self.a, self.b, temp, self.radial_element(r))
+		
 		try:
 			o_b_num = -self.a * self.b * temp * self.radial_element(r)
 		except:
@@ -124,7 +126,7 @@ class RadialBasisFunctionNetwork:
 			temp[self.num_centers * i: self.num_centers * (i+1)] = o_c_num[:,i]
 
 		self.o_c = np.reshape(temp / psi , (self.in_dim * self.num_centers, 1))
-	
+		
 	# Output of the neural net, linear combination of the outputs from the hidden layers
 	def psi(self,r):
 		#print ('RTURNED' ,self.radial_element(r))
